@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script> 
+    <script src="./web3.min.js"></script>
+    <script>
+        window.onload = function(){
+            var app = new Vue({
+                el: '#app',
+                data: {
+                    message: 'Hello vue',
+                    startBlock: 0,
+                    recosch: 0,
+                    takeosch: 0,
+                    web3: new Web3(new Web3.providers.HttpProvider('http://192.168.1.25:8545'))
+                },
+                mounted: function(){
+
+                },
+                methods: {
+                    findTotal: function(){
+                        var _this = this;
+                        var web3 = _this.web3;
+                        var recosch = [];
+                        var recSum = 0;
+                        var sendSum = 0;
+                        axios.get('http://api.etherscan.io/api',{
+                                params: {
+                                    module: "account",                 //contract
+                                    action: 'tokentx',    //txlist,tokentx,txlistinternal,getabi,
+                                    address: '0xe17ee7B3c676701c66B395A35f0DF4C2276a344E', 
+                                    startblock: _this.startBlock, //562385
+                                    endblock: 999999999,
+                                    //page: 54,
+                                    //offset: 10,
+                                    sort: 'asc',
+                                    apikey: 'A5FT8AKBXR76E9IVQRAY9DGC797R3BVEC5'
+                                }
+                            })
+                            .then(function(res){
+                                var data = res.data.result;
+                                for(var i=0; i<data.length;i++){
+                                   if(data[i].contractAddress == "0xf46f98a8f6032914921ae9cfb5aaab5083bd9376"){
+                                      console.log(data[i].from);
+                                      if(data[i].from == "0xe17ee7b3c676701c66b395a35f0df4c2276a344e"){
+                                        console.log("出：") 
+                                        sendSum += parseHexData(data[i].input);
+                                      }else{
+                                        console.log("进：")
+                                        recSum += parseHexData(data[i].input);
+                                      }
+                                      //console.log(data[i]);
+                                   } 
+                                   //
+                                }
+                                console.log("进入osch：")
+                                console.log(recSum);
+                                _this.recosch = recSum;
+                                console.log("出osch：")
+                                console.log(sendSum);
+                                _this.takeosch = sendSum;
+                            })
+                            .catch(function(error){
+                                console.log(error);        
+                            })
+                        //parseHexData('0xa9059cbb000000000000000000000000b2082e52d5cc2770373541a2c5bafe295cd0a94300000000000000000000000000000000000000000000000029a2241af62c0000');
+                        function parseHexData(hexData){
+                            var method = hexData.slice(0,10),
+                                receive = hexData.slice(34,74),
+                                oschHexNum = '0x'+hexData.slice(75,138),
+                                oschNum = parseInt(web3.utils.toBN(oschHexNum).toString()),
+                                oschNum = oschNum/1000000000000000000;
+                                console.log(oschNum);
+                                return oschNum;
+                           // console.log(receive);
+                        }
+                    }
+                }
+            }) 
+        }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <label for="stb">输入统计开始的块:</label>  
+        <input class="startBlock" id="stb" type="text" v-model="startBlock">
+        <button @click="findTotal">确定</button>
+        <h4>充值osch：{{recosch}}</h4>
+        <h4>提出osch：{{takeosch}}</h4>
+    </div>
+</body>
+</html>
+
